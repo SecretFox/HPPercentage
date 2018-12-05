@@ -1,6 +1,4 @@
 # HPPercentage
-Secret World Legends mod
-
 Shows targets health percentage on the healthbar  
 Use `/option HPP_Mode` chat command to configure mode  
 Available modes:  
