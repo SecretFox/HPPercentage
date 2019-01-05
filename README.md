@@ -13,6 +13,8 @@ Use `/option HPP_ColorMode` to change HP bar color
 * 1 - Normal (SWL default)  
 * 2 - HP based solid color
 * 3 - Gradient
+  
+Use `/option HPP_Dividers` to set how many segments the hp bar should be divided to (default 4)  
 
 **Install**  
 Unzip to `\Secret World Legends\Data\Gui\Custom\Flash`
