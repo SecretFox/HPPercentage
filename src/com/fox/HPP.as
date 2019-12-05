@@ -3,6 +3,7 @@
 * @author fox
 */
 import com.GameInterface.DistributedValue;
+import com.GameInterface.Game.Character;
 import com.GameInterface.Game.Dynel;
 import com.Utils.Archive;
 import com.fox.Coloring;
@@ -75,7 +76,7 @@ class com.fox.HPP {
 		}
 		_global.com.fox.HPPHook = true;
 		
-		// function for initializing our graphic container
+		// function for initializing graphic container
 		var f:Function = function (scale):Void {
 			if (!this.m_Bar.m_Overlay && scale == 100) {
 				var m_Overlay:MovieClip = this.m_Bar.createEmptyMovieClip("m_Overlay", this.m_Bar.getNextHighestDepth());
@@ -98,7 +99,7 @@ class com.fox.HPP {
 		}
 		HealthBar.prototype.DrawDividers = f;
 		
-		// function for redrawing our graphics, called when changing settings
+		// function for redrawing graphics, called when changing settings
 		f = function ():Void {
 			if (!this.m_Bar.m_Overlay){
 				this.InitContainer(this.m_Bar._xscale);
@@ -111,7 +112,17 @@ class com.fox.HPP {
 				}
 				
 				this.DrawDividers();
-				this.SetDynel(this.m_Dynel, true);
+				if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2 || com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3) {
+					this.m_Bar.m_MeterEnemy._alpha = 0;
+					this.m_Bar.m_MeterFriend._alpha = 0;
+				}
+				// SetMax forces the healthbar to be visible even if player isnt targeting anything
+				/*
+				var player:Character = Character.GetClientCharacter();
+				if (!this.m_Dynel.GetID().Equal(player.GetID()) && !player.GetOffensiveTarget().Equal(this.m_Dynel.GetID()) && !player.GetDefensiveTarget().Equal(this.m_Dynel.GetID())){
+					this.Hide();
+				}
+				*/
 				this.DrawHealthBar();
 			}
 		}
@@ -189,7 +200,7 @@ class com.fox.HPP {
 		f.base = HealthBar.prototype.UpdateStatText;
 		HealthBar.prototype.UpdateStatText = f;
 
-		// Extend update HP bar function to update our HP bar
+		// Extend update HP bar function to update HP bar color
 		// Original function still has to draw the barrier first
 		f = function (snap:Boolean):Void {
 			arguments.callee.base.apply(this, arguments);
@@ -204,12 +215,11 @@ class com.fox.HPP {
 						Coloring.Recolor(this.m_Bar.m_Overlay.m_Graphics, color);
 						Coloring.setClippingMask(this.m_Bar.m_Overlay.m_Graphics, hp);
 					}
+					return
 				}
 				// Gradient
 				// This one stays the same,we just need to adjust clipping mask
-				if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3) {
-					Coloring.setClippingMask(this.m_Bar.m_Overlay.m_Graphics, hp);
-				}
+				Coloring.setClippingMask(this.m_Bar.m_Overlay.m_Graphics, hp);
 			}
 		}
 		f.base = HealthBar.prototype.UpdateStatBar;
@@ -219,13 +229,16 @@ class com.fox.HPP {
 		// default SetDynel also makes them visible again
 		f = function (dynel:Dynel):Void {
 			arguments.callee.base.apply(this, arguments);
-			if (this.m_Bar.m_Overlay && (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2 || com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3)) {
-				this.m_Bar.m_MeterEnemy._alpha = 0;
-				this.m_Bar.m_MeterFriend._alpha = 0;
-			}
-			// SetMax forces the healthbar to be visible even if player isnt targeting anything
-			if (this.m_Dynel.IsEnemy() && com.GameInterface.Game.Character.GetClientCharacter().GetOffensiveTarget().IsNull()){
-				this.Hide();
+			if (this.m_Bar.m_Overlay){
+				if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2 || com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3) {
+					this.m_Bar.m_MeterEnemy._alpha = 0;
+					this.m_Bar.m_MeterFriend._alpha = 0;
+				}
+				// SetMax forces the healthbar to be visible even if player isnt targeting anything
+				var player:Character = Character.GetClientCharacter();
+				if (!this.m_Dynel.GetID().Equal(player.GetID()) && !player.GetOffensiveTarget().Equal(this.m_Dynel.GetID()) && !player.GetDefensiveTarget().Equal(this.m_Dynel.GetID())){
+					this.Hide();
+				}
 			}
 		}
 		f.base = HealthBar.prototype.SetDynel;
