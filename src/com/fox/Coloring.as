@@ -30,7 +30,7 @@ class com.fox.Coloring {
 		return intColor;
 	}
 	
-	static function DrawDivider(clip:MovieClip, sizeclip:MovieClip, amount){
+	static function DrawDivider(clip:MovieClip, sizeclip:MovieClip, amount, custom){
 		var y = sizeclip._y+1;
 		var width = sizeclip.width;
 		var height = sizeclip.height-3;
@@ -38,6 +38,14 @@ class com.fox.Coloring {
 			clip.moveTo(width / amount * i, y);
 			clip.lineStyle(1, 0x000000, 100);
 			clip.lineTo(width / amount * i, y + height);
+		}
+		if (custom){
+			var customs:Array = string(custom).split(",");
+			for (var i = 0; i < customs.length; i++){
+				clip.moveTo(width / 100 * customs[i], y);
+				clip.lineStyle(1, 0x000000, 100);
+				clip.lineTo(width / 100 * customs[i], y + height);
+			}
 		}
 	}
 

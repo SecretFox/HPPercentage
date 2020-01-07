@@ -14,6 +14,7 @@ class com.fox.HPP {
 	private var decimals:DistributedValue;
 	private var colormode:DistributedValue;
 	private var divider:DistributedValue;
+	private var divider_custom:DistributedValue;
 
 	public static function main(swfRoot:MovieClip):Void	{
 		var s_app = new HPP(swfRoot);
@@ -27,23 +28,27 @@ class com.fox.HPP {
 		decimals = DistributedValue.Create("HPP_Decimals");
 		colormode = DistributedValue.Create("HPP_ColorMode");
 		divider = DistributedValue.Create("HPP_Dividers");
+		divider_custom = DistributedValue.Create("HPP_Dividers_Customs");
 	}
 	public function Load() {
 		Hook();
 		colormode.SignalChanged.Connect(settingChanged, this);
 		mode.SignalChanged.Connect(settingChanged, this);
 		divider.SignalChanged.Connect(settingChanged, this);
+		divider_custom.SignalChanged.Connect(settingChanged, this);
 	}
 	public function Unload() {
 		colormode.SignalChanged.Disconnect(settingChanged, this);
 		mode.SignalChanged.Disconnect(settingChanged, this);
 		divider.SignalChanged.Disconnect(settingChanged, this);
+		divider_custom.SignalChanged.Connect(settingChanged, this);
 	}
 	public function Activate(config:Archive) {
 		mode.SetValue(config.FindEntry("Mode", 3));
 		decimals.SetValue(config.FindEntry("Decimal", 0));
 		colormode.SetValue(config.FindEntry("Color", 1));
 		divider.SetValue(config.FindEntry("Dividers", 4));
+		divider_custom.SetValue(config.FindEntry("Custom", false));
 		settingChanged();
 	}
 	
@@ -53,6 +58,7 @@ class com.fox.HPP {
 		config.AddEntry("Color", colormode.GetValue());
 		config.AddEntry("Decimal", decimals.GetValue());
 		config.AddEntry("Dividers", divider.GetValue());
+		config.AddEntry("Custom", divider_custom.GetValue());
 		return config
 	}
 	private function settingChanged() {
@@ -91,10 +97,15 @@ class com.fox.HPP {
 		// function for creating dividers for the HP bar
 		f = function ():Void {
 			var dividers = com.GameInterface.DistributedValueBase.GetDValue("HPP_Dividers");
-			if (this.m_Bar._xscale == 100 && dividers) {
+			var custom:String = undefined;
+			var player:Character = Character.GetClientCharacter();
+			if (this.m_Dynel.GetID().Equal(player.GetID())){
+				custom = com.GameInterface.DistributedValueBase.GetDValue("HPP_Dividers_Customs");
+			}
+			if (this.m_Bar._xscale == 100 && (dividers || custom)) {
 				this.m_Bar.m_Divider.removeMovieClip();
 				var div = this.m_Bar.createEmptyMovieClip("m_Divider", this.m_Bar.getNextHighestDepth());
-				Coloring.DrawDivider(div, this.m_Bar.m_Overlay, dividers);
+				Coloring.DrawDivider(div, this.m_Bar.m_Overlay, dividers, custom);
 			}
 		}
 		HealthBar.prototype.DrawDividers = f;
