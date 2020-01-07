@@ -15,6 +15,7 @@ Use `/option HPP_ColorMode` to change HP bar color
 * 3 - Gradient
   
 Use `/option HPP_Dividers` to set how many segments the hp bar should be divided to (default 4)  
+Use `/option HPP_Dividers_Customs "X,Y"` to add player only dividers at custom percentages e.g `/option HPP_Dividers_Customs "85"`  
 
 **Install**  
 Unzip to `\Secret World Legends\Data\Gui\Custom\Flash`
