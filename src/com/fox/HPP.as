@@ -3,8 +3,7 @@
 * @author fox
 */
 import com.GameInterface.DistributedValue;
-import com.GameInterface.Game.Character;
-import com.GameInterface.Game.Dynel;
+import com.GameInterface.Game.CharacterBase;
 import com.Utils.Archive;
 import com.fox.Coloring;
 import mx.utils.Delegate;
@@ -27,8 +26,8 @@ class com.fox.HPP {
 		mode = DistributedValue.Create("HPP_Mode");
 		decimals = DistributedValue.Create("HPP_Decimals");
 		colormode = DistributedValue.Create("HPP_ColorMode");
-		divider = DistributedValue.Create("HPP_Dividers");
-		divider_custom = DistributedValue.Create("HPP_Dividers_Customs");
+		divider = DistributedValue.Create("HPP_Segments");
+		divider_custom = DistributedValue.Create("HPP_Segments_Custom");
 	}
 	public function Load() {
 		Hook();
@@ -49,7 +48,7 @@ class com.fox.HPP {
 		colormode.SetValue(config.FindEntry("Color", 1));
 		divider.SetValue(config.FindEntry("Dividers", 4));
 		divider_custom.SetValue(config.FindEntry("Custom", false));
-		settingChanged();
+		Draw();
 	}
 	
 	public function Deactivate():Archive {
@@ -61,13 +60,17 @@ class com.fox.HPP {
 		config.AddEntry("Custom", divider_custom.GetValue());
 		return config
 	}
-	private function settingChanged() {
+	
+	private function Draw(force){
 		if (!_root.playerinfo.health.reDraw){
-			setTimeout(Delegate.create(this, settingChanged), 100);
+			setTimeout(Delegate.create(this, Draw), 100, force);
 			return;
 		}
-		_root.playerinfo.health.reDraw();
-		_root.targetinfo.health.reDraw();
+		_root.playerinfo.health.reDraw(force);
+		_root.targetinfo.health.reDraw(force);
+	}
+	private function settingChanged() {
+		Draw(true);
 	}
 
 	public function Hook() {
@@ -82,108 +85,102 @@ class com.fox.HPP {
 		}
 		_global.com.fox.HPPHook = true;
 		
-		// function for initializing graphic container
-		var f:Function = function (scale):Void {
-			if (!this.m_Bar.m_Overlay && scale == 100) {
-				var m_Overlay:MovieClip = this.m_Bar.createEmptyMovieClip("m_Overlay", this.m_Bar.getNextHighestDepth());
-				m_Overlay._x = this.m_Bar.m_ArtworkEnemy._x;
-				m_Overlay._y = this.m_Bar.m_ArtworkEnemy._y;
-				m_Overlay.width = this.m_Bar.m_ArtworkEnemy._width;
-				m_Overlay.height = this.m_Bar.m_ArtworkEnemy._height - 3;
+		// function for initializing graphic container(and clearing it)
+		var f:Function = function ():Void {
+			//needed variables
+			this.isPlayer = this.m_Dynel.GetID().Equal(CharacterBase.GetClientCharID());
+			this.colorMode = com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode");
+			this.numMode = com.GameInterface.DistributedValueBase.GetDValue("HPP_Mode");
+			this.decimals =  com.GameInterface.DistributedValueBase.GetDValue("HPP_Decimals");
+			if (!this.m_Bar.m_Overlay){
+				//hide default border
+				this.m_Bar.m_ArtworkFriend._visible = false;
+				this.m_Bar.m_ArtworkEnemy._visible = false;
+				// Make default bars thicc (looks better with outline)
+				this.m_Bar.m_MeterFriend._height = 
+					this.m_Bar.m_MeterEnemy._height = 
+					this.m_Bar.m_OverlayEnemy._height = 
+					this.m_Bar.m_OverlayFriend._height = 16;
+				this.m_Bar.m_MeterFriend._y = 
+					this.m_Bar.m_MeterEnemy._y =
+					this.m_Bar.m_OverlayEnemy._y =
+					this.m_Bar.m_OverlayFriend._y = -1;
+			}else{
+				/* 
+				* m_Overlay swaps depths with barrier later, giving it a negative depth
+				* movieclips with negative depths cannot be removed
+				*/
+				if (this.m_Bar.m_Overlay.getDepth() < this.m_Bar.m_Boost.getDepth() && this.m_Bar.m_Boost.getDepth() > 0){
+					this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_Boost);
+				}else{
+					this.m_Bar.m_Overlay.swapDepths(999);
+				}
+				this.m_Bar.m_Overlay.removeMovieClip();
 			}
+			//base
+			var m_Overlay = this.m_Bar.createEmptyMovieClip("m_Overlay", this.m_Bar.getNextHighestDepth());
+			//Store info for sizing
+			m_Overlay._y = this.m_Bar.m_ArtworkEnemy._y - 2;
+			m_Overlay.y = this.m_Bar.m_ArtworkEnemy._y;
+			m_Overlay.x = this.m_Bar.m_ArtworkEnemy._x-1;
+			m_Overlay.width = this.m_Bar.m_ArtworkEnemy._width + 1;
+			m_Overlay.height = this.m_Bar.m_ArtworkEnemy._height - 1;
+			//components
+			m_Overlay.createEmptyMovieClip("m_Graphics", m_Overlay.getNextHighestDepth());
+			m_Overlay.createEmptyMovieClip("m_Divider", m_Overlay.getNextHighestDepth());
+			m_Overlay.createEmptyMovieClip("m_Border", m_Overlay.getNextHighestDepth());
 		}
 		HealthBar.prototype.InitContainer = f;
 
-		// function for creating dividers for the HP bar
+		// Creating dividers
 		f = function ():Void {
-			var dividers = com.GameInterface.DistributedValueBase.GetDValue("HPP_Dividers");
+			var dividers = com.GameInterface.DistributedValueBase.GetDValue("HPP_Segments");
 			var custom:String = undefined;
-			var player:Character = Character.GetClientCharacter();
-			if (this.m_Dynel.GetID().Equal(player.GetID())){
-				custom = com.GameInterface.DistributedValueBase.GetDValue("HPP_Dividers_Customs");
+			if (this.isPlayer){
+				custom = com.GameInterface.DistributedValueBase.GetDValue("HPP_Segments_Custom");
 			}
-			if (this.m_Bar._xscale == 100 && (dividers || custom)) {
-				this.m_Bar.m_Divider.removeMovieClip();
-				var div = this.m_Bar.createEmptyMovieClip("m_Divider", this.m_Bar.getNextHighestDepth());
-				Coloring.DrawDivider(div, this.m_Bar.m_Overlay, dividers, custom);
+			if (dividers || custom) {
+				Coloring.DrawDivider(this.m_Bar.m_Overlay.m_Divider, dividers, custom);
 			}
+			Coloring.DrawBox(this.m_Bar.m_Overlay.m_Border, this.m_Bar.m_ArtworkFriend);
+			
 		}
 		HealthBar.prototype.DrawDividers = f;
 		
-		// function for redrawing graphics, called when changing settings
-		f = function ():Void {
-			if (!this.m_Bar.m_Overlay){
-				this.InitContainer(this.m_Bar._xscale);
-			}
-			if (this.m_Bar.m_Overlay){
-				if(this.m_Bar.m_Overlay.m_Graphics){
-					this.m_Bar.m_Overlay.m_Graphics.setMask(null);
-					this.m_Bar.m_Overlay.mask.removeMovieClip();
-					this.m_Bar.m_Overlay.m_Graphics.removeMovieClip();
-				}
-				
+		// redrawing graphics, called when changing settings
+		f = function (force):Void {
+			if (force || !this.m_Bar.m_Overlay){
+				this.InitContainer();
+				this.DrawHealthBar();
 				this.DrawDividers();
-				if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2 || com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3) {
+				this.UpdateStatText();
+				if (this.colorMode == 2 || this.colorMode == 3) {
 					this.m_Bar.m_MeterEnemy._alpha = 0;
 					this.m_Bar.m_MeterFriend._alpha = 0;
 				}
-				// SetMax forces the healthbar to be visible even if player isnt targeting anything
-				/*
-				var player:Character = Character.GetClientCharacter();
-				if (!this.m_Dynel.GetID().Equal(player.GetID()) && !player.GetOffensiveTarget().Equal(this.m_Dynel.GetID()) && !player.GetDefensiveTarget().Equal(this.m_Dynel.GetID())){
-					this.Hide();
+				else{
+					if (this.isPlayer){
+						this.m_Bar.m_MeterFriend._alpha = 100;
+					}else{
+						this.m_Bar.m_MeterEnemy._alpha = 100;
+					}
 				}
-				*/
-				this.DrawHealthBar();
 			}
 		}
 		HealthBar.prototype.reDraw = f;
-	
-		// function for drawing bar overlay
+		// Drawing graphics
 		f = function ():Void {
-			// HP based
-			if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2) {
-				var color = Coloring.GetColor(1);
-				var graph:MovieClip = this.m_Bar.m_Overlay.createEmptyMovieClip("m_Graphics", this.m_Bar.m_Overlay.getNextHighestDepth());
-				// Swap it with artwork(borders), making artwork new top element,followed by our graphics
-				if (this.m_IsPlayer){
-					if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_ArtworkFriend.getDepth()){
-						this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_ArtworkFriend);
-					}
-				}
-				else{
-					if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_ArtworkEnemy.getDepth()){
-						this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_ArtworkEnemy);
-					}
-				}
-				//Now swap it with barrier
-				// result : artwork -> barrier -> our graphic
-				if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_Boost.getDepth()){
-					this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_Boost);
-				}
-				Coloring.DrawSolid(graph, color);
+			if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_Boost.getDepth()){
+				this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_Boost);
 			}
-			// Gradient
-			if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3) {
-				var m_Graphics:MovieClip = this.m_Bar.m_Overlay.createEmptyMovieClip("m_Graphics", this.m_Bar.m_Overlay.getNextHighestDepth());
-				// Swap it with artwork(borders), making artwork new top element, followed by our graphics
-				if (this.m_IsPlayer){
-					if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_ArtworkFriend.getDepth()){
-						this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_ArtworkFriend);
-					}
-				}
-				else{
-					if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_ArtworkEnemy.getDepth()){
-						this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_ArtworkEnemy);
-					}
-				}
-				//Now swap it with barrier
-				// result : artwork -> barrier -> our graphic
-				if (this.m_Bar.m_Overlay.getDepth() > this.m_Bar.m_Boost.getDepth()){
-					this.m_Bar.m_Overlay.swapDepths(this.m_Bar.m_Boost);
-				}
+			if (this.colorMode == 2) {
+				var color = Coloring.GetColor(1);
+				Coloring.DrawSolid(this.m_Bar.m_Overlay.m_Graphics, color);
+			}
+			else if (this.colorMode == 3) {
 				Coloring.DrawGradient(this.m_Bar.m_Overlay.m_Graphics);
 			}
+			this.UpdateStatBar();
 		}
 		HealthBar.prototype.DrawHealthBar = f;
 		
@@ -191,15 +188,15 @@ class com.fox.HPP {
 		// Extend update HP text function to display health as percentage
 		f = function ():Void {
 			if (!this.m_ShowText) return;
-			if (com.GameInterface.DistributedValueBase.GetDValue("HPP_Mode") == 1) {
+			if ( this.numMode == 1) {
 				arguments.callee.base.apply(this, arguments);
 			}else{
 				var hp = 100 * this.m_Current / this.m_Max;
 				if (hp >= 0) {
 					if (hp > 100) hp = 100;
-					var multi = Math.pow(10, com.GameInterface.DistributedValueBase.GetDValue("HPP_Decimals"));
+					var multi = Math.pow(10, this.decimals);
 					var percentage =  Math.round(hp * multi) / multi;
-					if (com.GameInterface.DistributedValueBase.GetDValue("HPP_Mode") == 2) {
+					if (this.numMode == 2) {
 						this.m_Text.htmlText = percentage + " %";
 					} else{
 						var number = Math.floor(this.m_Current) + " / " + Math.floor(this.m_Max);
@@ -213,46 +210,29 @@ class com.fox.HPP {
 
 		// Extend update HP bar function to update HP bar color
 		// Original function still has to draw the barrier first
+		// TODO Aegis?
 		f = function (snap:Boolean):Void {
 			arguments.callee.base.apply(this, arguments);
-			// If this is HP bar we want to modify
-			if (this.m_Bar.m_Overlay && (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2 || com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3)){
+			if (this.m_Bar.m_Overlay && (this.colorMode == 2 || this.colorMode == 3)){
 				var hp = this.m_Current / this.m_Max;
+				if (isNaN(hp)) hp = 0;
 				// HP based
 				// need to recolor on each update.
-				if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2) {
-					var color = Coloring.GetColor(hp);
-					if (color){
-						Coloring.Recolor(this.m_Bar.m_Overlay.m_Graphics, color);
-						Coloring.setClippingMask(this.m_Bar.m_Overlay.m_Graphics, hp);
+				if (this.colorMode == 2) {
+					// skip color calculation if difference is less than 5%
+					if (!this.m_Bar.m_Overlay.last || Math.abs(this.m_Bar.m_Overlay.last - hp) > 0.05){
+						this.m_Bar.m_Overlay.last = hp;
+						var color = Coloring.GetColor(hp);
+						if (color){
+							Coloring.Recolor(this.m_Bar.m_Overlay.m_Graphics, color);
+						}
 					}
-					return
 				}
-				// Gradient
-				// This one stays the same,we just need to adjust clipping mask
+				//gradient only needs clipping mode adjustment
 				Coloring.setClippingMask(this.m_Bar.m_Overlay.m_Graphics, hp);
 			}
 		}
 		f.base = HealthBar.prototype.UpdateStatBar;
-		HealthBar.prototype.UpdateStatBar = f;		
-		
-		// Extend SetDynel to hide default HP bar if needed
-		// default SetDynel also makes them visible again
-		f = function (dynel:Dynel):Void {
-			arguments.callee.base.apply(this, arguments);
-			if (this.m_Bar.m_Overlay){
-				if (com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 2 || com.GameInterface.DistributedValueBase.GetDValue("HPP_ColorMode") == 3) {
-					this.m_Bar.m_MeterEnemy._alpha = 0;
-					this.m_Bar.m_MeterFriend._alpha = 0;
-				}
-				// SetMax forces the healthbar to be visible even if player isnt targeting anything
-				var player:Character = Character.GetClientCharacter();
-				if (!this.m_Dynel.GetID().Equal(player.GetID()) && !player.GetOffensiveTarget().Equal(this.m_Dynel.GetID()) && !player.GetDefensiveTarget().Equal(this.m_Dynel.GetID())){
-					this.Hide();
-				}
-			}
-		}
-		f.base = HealthBar.prototype.SetDynel;
-		HealthBar.prototype.SetDynel = f;
+		HealthBar.prototype.UpdateStatBar = f;
 	}
 }

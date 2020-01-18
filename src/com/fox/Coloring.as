@@ -1,8 +1,8 @@
 import com.Utils.Colors;
-/**
- * ...
- * @author fox
- */
+/*
+* ...
+* @author fox
+*/
 class com.fox.Coloring {
 	/*
 	* https://www.cssmatic.com/gradient-generator#'\-moz\-linear\-gradient\%28left\%2C\%20rgba\%2832\%2C255\%2C140\%2C1\%29\%200\%25\%2C\%20rgba\%28124\%2C240\%2C101\%2C1\%29\%2025\%25\%2C\%20rgba\%28234\%2C240\%2C48\%2C1\%29\%2050\%25\%2C\%20rgba\%28240\%2C109\%2C48\%2C1\%29\%2075\%25\%2C\%20rgba\%28207\%2C4\%2C4\%2C1\%29\%20100\%25\%29\%3B'
@@ -18,7 +18,6 @@ class com.fox.Coloring {
 	static function GetColor(hp) {
 		if (hp == 1) return 0x20FF8A;
 		else if (hp == 0) return 0xff4646;
-		else if (!hp) return;
 		var segments = hp * (ColorArray.length-1);
 		var colorIndex = Math.floor(segments);
 		var highPercent = segments - colorIndex;
@@ -30,10 +29,25 @@ class com.fox.Coloring {
 		return intColor;
 	}
 	
-	static function DrawDivider(clip:MovieClip, sizeclip:MovieClip, amount, custom){
-		var y = sizeclip._y+1;
-		var width = sizeclip.width;
-		var height = sizeclip.height-3;
+	static function DrawBox(clip:MovieClip){
+		var x = clip._parent.x;
+		var y = clip._parent.y;
+		var width = clip._parent.width;
+		var height = clip._parent.height;
+		
+		clip.moveTo(x, y);
+		clip.lineStyle(1, 0x000000, 100);
+		clip.lineTo(x + width, y);
+		clip.lineTo(x + width, y + height);
+		clip.lineTo(x, y + height);
+		clip.lineTo(x, y);
+	}
+	
+	static function DrawDivider(clip:MovieClip, amount, custom){
+		var y = clip._parent.y;
+		var width =  clip._parent.width;
+		var height =  clip._parent.height;
+		
 		for (var i = 1; i < amount; i++) {
 			clip.moveTo(width / amount * i, y);
 			clip.lineStyle(1, 0x000000, 100);
@@ -50,11 +64,11 @@ class com.fox.Coloring {
 	}
 
 	static function DrawSolid(clip:MovieClip, color) {
-		var x = clip._parent._x-1;
-		var y = clip._parent._y;
+		var x = clip._parent.x;
+		var y = clip._parent.y;
 		var width = clip._parent.width;
 		var height = clip._parent.height;
-
+	
 		clip.clear();
 		clip.moveTo(x, y);
 		clip.beginFill(color, 100);
@@ -71,16 +85,18 @@ class com.fox.Coloring {
 	}
 	
 	static function setClippingMask(clip:MovieClip, hp:Number){
-		clip.setMask(null); //crashes without
-		var mask:MovieClip = com.GameInterface.ProjectUtils.SetMovieClipMask(clip, clip._parent, clip._parent.height+2, clip._parent.width * hp);
+		if (hp){
+			clip.setMask(null); //crashes without
+			var mask:MovieClip = com.GameInterface.ProjectUtils.SetMovieClipMask(clip, clip._parent, clip._parent.height, (clip._width+2) * hp);	
+		}
 	}
 	
 	// https://as2tutorials.wordpress.com/2010/03/04/using-gradients-in-flash-as2/
 	// Draws gradient from each HexArray entry to the next.
 	static function DrawGradient(clip:MovieClip) {
-		var x = clip._x;
-		var y = clip._y;
-		var gradientWidth = clip._parent.width / (HexArray.length-1);
+		var x = clip._parent.x;
+		var y = clip._parent.y;
+		var gradientWidth = (clip._parent.width) / (HexArray.length-1);
 		var height = clip._parent.height;
 
 		var fillType = "linear";
@@ -90,7 +106,7 @@ class com.fox.Coloring {
 		//gradient
 		for (var i:Number = 0; i < segments; i++) {
 			var colors = [HexArray[i], HexArray[i+1]];
-			var matrix = {matrixType:"box", x:x, y:y-1, w:gradientWidth+1, h:height+2, r:0 / 180 * Math.PI};
+			var matrix = {matrixType:"box", x:x, y:y, w:gradientWidth+1, h:height, r:0 / 180 * Math.PI};
 			clip.moveTo(x, y);
 			clip.lineStyle(1, 0x000000, 0);
 			clip.beginGradientFill(fillType, colors, alphas, ratios, matrix);
