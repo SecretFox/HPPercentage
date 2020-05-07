@@ -17,6 +17,7 @@ class com.fox.HPP {
 	private var divider:DistributedValue;
 	private var divider_custom:DistributedValue;
 	private var nametags:DistributedValue;
+	private var dropshadows:DistributedValue;
 	static var Loaded:Boolean;
 
 	public static function main(swfRoot:MovieClip):Void	{
@@ -34,6 +35,7 @@ class com.fox.HPP {
 		divider = DistributedValue.Create("HPP_Segments");
 		divider_custom = DistributedValue.Create("HPP_Segments_Custom");
 		nametags = DistributedValue.Create("HPP_Nametags");
+		dropshadows = DistributedValue.Create("HPP_DropShadow");
 	}
 	public function Load() {
 		Hook();
@@ -58,6 +60,7 @@ class com.fox.HPP {
 			divider.SetValue(config.FindEntry("Dividers", 4));
 			divider_custom.SetValue(config.FindEntry("Custom", false));
 			nametags.SetValue(config.FindEntry("Nametags", false));
+			dropshadows.SetValue(config.FindEntry("DropShadow", true));
 			Loaded = true;
 		}
 	}
@@ -70,6 +73,7 @@ class com.fox.HPP {
 		config.AddEntry("Dividers", divider.GetValue());
 		config.AddEntry("Custom", divider_custom.GetValue());
 		config.AddEntry("Nametags", nametags.GetValue());
+		config.AddEntry("DropShadow", dropshadows.GetValue());
 		return config
 	}
 	private function settingChanged() {
@@ -117,7 +121,10 @@ class com.fox.HPP {
 		var f:Function = function(force):Void{
 			if (!this.HPPLoaded){
 				var text:TextField = this.m_Text;
-				text.filters = [new DropShadowFilter(0, 0, 0x000000, 0.8, 1.5, 1.5, 255, 1, false, false, false)];
+				if (DistributedValueBase.GetDValue("HPP_DropShadow")){
+					text.filters = [new DropShadowFilter(0, 0, 0x000000, 0.8, 1.5, 1.5, 255, 1, false, false, false)];
+				}
+				
 				this.isPlayer = this.m_Dynel.GetID().Equal(CharacterBase.GetClientCharID());
 				this.colorMode = DistributedValueBase.GetDValue("HPP_ColorMode");
 				this.numMode = DistributedValueBase.GetDValue("HPP_Mode");
