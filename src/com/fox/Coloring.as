@@ -10,14 +10,21 @@ class com.fox.Coloring {
 	* red -> orange -> yellow ->green
 	*/
 	static var ColorArray:Array = [[207, 4, 4], [240, 61, 48], [213, 235, 47], [32, 255, 140]]; // HP Based
+	static var ColorIndex:Array;
 	static var HexArray:Array = [0xcf0404,  0xe6db10,  0x20ff8c]; // gradient HP Bar
 
-	public function Coloring() {}
+	// precalculates HP based colors for every 5%
+	public function Coloring() {
+		ColorIndex = [0xcf0404];
+		for (var i:Number = 1; i < 21; i++){
+			ColorIndex.push(GetColor(i/20));
+		}
+	}
 	
 	// Finds color between two ColorArray values, based on the enemy HP
 	static function GetColor(hp) {
-		if (hp == 1) return 0x20FF8A;
-		else if (hp == 0) return 0xff4646;
+		if (hp == 1) return 0x20ff8c;
+		else if (hp == 0) return 0xcf0404;
 		var segments = hp * (ColorArray.length-1);
 		var colorIndex = Math.floor(segments);
 		var highPercent = segments - colorIndex;
@@ -49,9 +56,10 @@ class com.fox.Coloring {
 		var height =  clip._parent.height;
 		
 		for (var i = 1; i < amount; i++) {
-			clip.moveTo(width / amount * i, y);
+			var x = width / amount * i;
+			clip.moveTo(x, y);
 			clip.lineStyle(1, 0x000000, 100);
-			clip.lineTo(width / amount * i, y + height);
+			clip.lineTo(x, y + height);
 		}
 		if (custom){
 			var customs:Array = string(custom).split(",");
