@@ -16,9 +16,9 @@ Use `/option HPP_ColorMode` to change HP bar color
   
 Use `/option HPP_Segments` to set how many segments the hp bar should be divided to (default 4)  
 Use `/option HPP_Segments_Custom "X,Y"` to add player only segment at custom percentage(s) e.g `/option HPP_Segments_Custom "85"`  
-USe `/option HPP_Nametags true` to enable health text for nametags  
-USe `/option HPP_DropShadow false` to disable dropshadows for the text  
-USe `/option HPP_Scaling true` to enable HP bar scaling based on temporary HP buffs  
+Use `/option HPP_Nametags true` to enable health text for nametags  
+Use `/option HPP_DropShadow false` to disable dropshadows for the text  
+Use `/option HPP_Scaling true` to enable HP bar scaling based on temporary HP buffs  
 
 
 **Install**  
