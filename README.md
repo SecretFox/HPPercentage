@@ -19,6 +19,7 @@ Use `/option HPP_Segments_Custom "X,Y"` to add player only segment at custom per
 Use `/option HPP_Nametags true` to enable health text for nametags  
 Use `/option HPP_DropShadow false` to disable dropshadows for the text  
 Use `/option HPP_Scaling true` to enable HP bar scaling based on temporary HP buffs  
+Use `/option HPP_Scaling #FF00FF` to set scaling HP bars color
 
 
 **Install**  

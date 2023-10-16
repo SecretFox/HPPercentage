@@ -36,6 +36,13 @@ class com.fox.Coloring {
 		return intColor;
 	}
 	
+	static function HexToInt(rrggbb:String) {
+		if (rrggbb.charAt(0) == "#"){
+			rrggbb = rrggbb.substr(1);
+		}
+		return parseInt(rrggbb, 16);
+	}
+
 	static function DrawBox(clip:MovieClip){
 		var x = clip._parent.x;
 		var y = clip._parent.y;

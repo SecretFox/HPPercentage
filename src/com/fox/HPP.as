@@ -6,8 +6,10 @@ import caurina.transitions.Tweener;
 import com.GameInterface.DistributedValue;
 import com.GameInterface.DistributedValueBase;
 import com.GameInterface.Game.BuffData;
+import com.GameInterface.Game.Character;
 import com.GameInterface.Game.CharacterBase;
 import com.Utils.Archive;
+import com.Utils.Draw;
 import com.fox.Coloring;
 import flash.filters.DropShadowFilter;
 import mx.utils.Delegate;
@@ -21,6 +23,7 @@ class com.fox.HPP {
 	private var nametags:DistributedValue;
 	private var dropshadows:DistributedValue;
 	private var scaling:DistributedValue;
+	private var scalingColor:DistributedValue;
 	static var Loaded:Boolean;
 
 	public static function main(swfRoot:MovieClip):Void {
@@ -41,6 +44,7 @@ class com.fox.HPP {
 		nametags = DistributedValue.Create("HPP_Nametags");
 		dropshadows = DistributedValue.Create("HPP_DropShadow");
 		scaling = DistributedValue.Create("HPP_Scaling");
+		scalingColor = DistributedValue.Create("HPP_ScalingColor");
 	}
 
 	public function Load() {
@@ -51,6 +55,7 @@ class com.fox.HPP {
 		divider_custom.SignalChanged.Connect(settingChanged, this);
 		nametags.SignalChanged.Connect(settingChanged, this);
 		scaling.SignalChanged.Connect(settingChanged, this);
+		scalingColor.SignalChanged.Connect(settingChanged, this);
 	}
 
 	public function Unload() {
@@ -60,6 +65,7 @@ class com.fox.HPP {
 		divider_custom.SignalChanged.Disconnect(settingChanged, this);
 		nametags.SignalChanged.Disconnect(settingChanged, this);
 		scaling.SignalChanged.Disconnect(settingChanged, this);
+		scalingColor.SignalChanged.Connect(settingChanged, this);
 	}
 
 	public function Activate(config:Archive) {
@@ -72,6 +78,7 @@ class com.fox.HPP {
 			nametags.SetValue(config.FindEntry("Nametags", false));
 			dropshadows.SetValue(config.FindEntry("DropShadow", true));
 			scaling.SetValue(config.FindEntry("Scaling", false));
+			scalingColor.SetValue(config.FindEntry("ScalingColor", "#842af6"));
 			Loaded = true;
 		}
 	}
@@ -86,6 +93,7 @@ class com.fox.HPP {
 		config.AddEntry("Nametags", nametags.GetValue());
 		config.AddEntry("DropShadow", dropshadows.GetValue());
 		config.AddEntry("Scaling", scaling.GetValue());
+		config.AddEntry("ScalingColor", scalingColor.GetValue());
 		return config
 	}
 
@@ -193,7 +201,14 @@ class com.fox.HPP {
 					this.m_Bar.m_Overlay.swapDepths(999);
 				}
 				this.m_Bar.m_Overlay.removeMovieClip();
+				this.m_ThirdShield.m_Overlay.removeMovieClip();
 			}
+			//scaling hp bar
+			//this.m_ThirdShield._x = 0;
+			var scalingoverlay = this.m_ThirdShield.createEmptyMovieClip("m_Overlay", this.m_ThirdShield.getNextHighestDepth());
+			scalingoverlay._x = this.m_Bar._x + this.m_Bar._width / this.m_Bar._xscale * 100 - this.m_ThirdShield._x;
+			Draw.DrawRectangle(scalingoverlay, 0, 0, 1, this.m_Bar.m_ArtworkEnemy._height, Coloring.HexToInt(DistributedValueBase.GetDValue("HPP_ScalingColor")), 75);
+			scalingoverlay._width = 0;
 			//base
 			var m_Overlay = this.m_Bar.createEmptyMovieClip("m_Overlay", this.m_Bar.getNextHighestDepth());
 			//Store info for sizing
@@ -207,7 +222,6 @@ class com.fox.HPP {
 			m_Overlay.createEmptyMovieClip("m_Divider", m_Overlay.getNextHighestDepth());
 			m_Overlay.createEmptyMovieClip("m_Border", m_Overlay.getNextHighestDepth());
 			this.m_Text._x = (this.m_Bar._width - this.m_Text._width) * 0.5;
-			this.m_Bar._xscale = 100;
 			this.UpdateBaseHealth();
 		}
 		HealthBar.prototype.InitContainer = f;
@@ -271,13 +285,15 @@ class com.fox.HPP {
 			this.baseHealth = 0;
 			if (this.isPlayer) {
 				clearInterval(this.baseHealthInterval);
-				this.baseHealthInterval = setInterval(Delegate.create(this, this.GetBaseHealth), 2000);
+				this.baseHealthInterval = setInterval(Delegate.create(this, this.GetBaseHealth), 1000);
+				this.GetBaseHealth();
 			}
 		}
 		HealthBar.prototype.UpdateBaseHealth = f;
 
 		f = function ():Void {
-			var buffs:Array = this.m_Dynel.m_BuffList;
+			var buffs:Object = Character(this.m_Dynel).m_BuffList;
+			var modifier = 0;
 			for (var i in buffs) {
 				var buff:BuffData = buffs[i];
 				switch (buff.m_BuffId) {
@@ -287,13 +303,18 @@ class com.fox.HPP {
 					case 9464975: // all eyes on me
 					case 9269422: // Veil of deformity
 						return;
+					case 9271325:
+						modifier += 1500;
+						break;
 					default:
 						//com.GameInterface.UtilsBase.PrintChatText(buff.m_Name + "  " + buff.m_BuffId);
 				}
 			}
 			var healthRatio = this.m_Dynel.GetStat(2000765) / 100;
 			this.baseHealth = this.m_Max - Math.ceil(0.5 + healthRatio * this.m_Dynel.GetStat(2000763, 2) * 2.8562);
+			this.baseHealth -= modifier;
 			clearInterval(this.baseHealthInterval);
+			this.UpdateBarScale();
 		}
 		HealthBar.prototype.GetBaseHealth = f;
 
@@ -301,16 +322,18 @@ class com.fox.HPP {
 			var scope = this;
 			Tweener.removeTweens(scope.m_Bar);
 			var healthRatio = this.m_Dynel.GetStat(2000765) / 100;
-			var baseHealth = this.baseHealth + Math.ceil(0.5 + healthRatio * this.m_Dynel.GetStat(2000763, 2) * 2.8562);
-			var scale = this.m_Max / baseHealth * 100;
-			scale = 100 + ( scale - 100) / 2;
-			var orgScale = scope.m_Bar._xscale;
+			var baseHealth = this.baseHealth;
+			if (Character(this.m_Dynel).m_BuffList[9271325]) baseHealth += 1500;
+			var unbuffedHP = baseHealth + Math.ceil(0.5 + healthRatio * this.m_Dynel.GetStat(2000763, 2) * 2.8562);
+			var scale = (this.m_Max / unbuffedHP * 100 + 100) / 2;
 			var centerText = function() {
 				scope.m_Text._x = (scope.m_Bar._width - scope.m_Text._width) * 0.5;
-				var orgWidth = scope.m_Bar._width / scope.m_Bar._xscale * 100;
-				scope._x = -(scope.m_Bar._width - orgWidth) / 2
 			}
+			var orgWidth = scope.m_Bar._width / scope.m_Bar._xscale * 100;
+			var targetWidth = orgWidth * scale / 100;
 			Tweener.addTween(scope.m_Bar, {_xscale:scale, time:2, onUpdate:centerText});
+			Tweener.addTween(scope.m_ThirdShield.m_Overlay, {_width:targetWidth-orgWidth, time:2});
+			
 		}
 		HealthBar.prototype.UpdateBarScale = f;
 
