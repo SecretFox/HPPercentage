@@ -18,10 +18,11 @@ Use `/option HPP_Segments` to set how many segments the hp bar should be divided
 Use `/option HPP_Segments_Custom "X,Y"` to add player only segment at custom percentage(s) e.g `/option HPP_Segments_Custom "85"`  
 USe `/option HPP_Nametags true` to enable health text for nametags  
 USe `/option HPP_DropShadow false` to disable dropshadows for the text  
+USe `/option HPP_Scaling true` to enable HP bar scaling based on temporary HP buffs  
 
 
 **Install**  
 Unzip to `\Secret World Legends\Data\Gui\Custom\Flash`
 
 **Download**
-Downloads can be found under "Releases"
+[![Downloads](https://img.shields.io/github/downloads/SecretFox/HPPercentage/total?style=for-the-badge)](https://github.com/SecretFox/HPPercentage/releases)  
