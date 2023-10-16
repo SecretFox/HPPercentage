@@ -145,7 +145,6 @@ class com.fox.HPP {
 				if (DistributedValueBase.GetDValue("HPP_DropShadow")) {
 					text.filters = [new DropShadowFilter(0, 0, 0x000000, 0.8, 1.5, 1.5, 255, 1, false, false, false)];
 				}
-
 				this.isPlayer = this.m_Dynel.GetID().Equal(CharacterBase.GetClientCharID());
 				this.colorMode = DistributedValueBase.GetDValue("HPP_ColorMode");
 				this.numMode = DistributedValueBase.GetDValue("HPP_Mode");
@@ -283,7 +282,7 @@ class com.fox.HPP {
 
 		f = function ():Void {
 			this.baseHealth = 0;
-			if (this.isPlayer) {
+			if (this.isPlayer && this.drawHP) {
 				clearInterval(this.baseHealthInterval);
 				this.baseHealthInterval = setInterval(Delegate.create(this, this.GetBaseHealth), 1000);
 				this.GetBaseHealth();
@@ -319,19 +318,20 @@ class com.fox.HPP {
 		HealthBar.prototype.GetBaseHealth = f;
 
 		f = function ():Void {
+			if (!this.drawHP) return;
 			var scope = this;
 			Tweener.removeTweens(scope.m_Bar);
 			var healthRatio = this.m_Dynel.GetStat(2000765) / 100;
 			var baseHealth = this.baseHealth;
 			if (Character(this.m_Dynel).m_BuffList[9271325]) baseHealth += 1500;
 			var unbuffedHP = baseHealth + Math.ceil(0.5 + healthRatio * this.m_Dynel.GetStat(2000763, 2) * 2.8562);
-			var scale = (this.m_Max / unbuffedHP * 100 + 100) / 2;
+			var targetScale = (this.m_Max / unbuffedHP * 100 + 100) / 2;
 			var centerText = function() {
 				scope.m_Text._x = (scope.m_Bar._width - scope.m_Text._width) * 0.5;
 			}
 			var orgWidth = scope.m_Bar._width / scope.m_Bar._xscale * 100;
-			var targetWidth = orgWidth * scale / 100;
-			Tweener.addTween(scope.m_Bar, {_xscale:scale, time:2, onUpdate:centerText});
+			var targetWidth = orgWidth * targetScale / 100;
+			Tweener.addTween(scope.m_Bar, {_xscale:targetScale, time:2, onUpdate:centerText});
 			Tweener.addTween(scope.m_ThirdShield.m_Overlay, {_width:targetWidth-orgWidth, time:2});
 			
 		}
@@ -339,14 +339,14 @@ class com.fox.HPP {
 
 		f = function (stat):Void {
 			arguments.callee.base.apply(this, arguments);
-			if ( stat != _global.Enums.Stat.e_Life ) return;
+			if (!this.drawHP) return;
+			if (!this.isPlayer) return;
 			if ( !this.baseHealth) return;
 			if ( !DistributedValueBase.GetDValue("HPP_Scaling")) return;
-			if ( !this.m_Dynel.GetID().Equal(CharacterBase.GetClientCharID())) return;
 			this.UpdateBarScale();
 		}
-		f.base = HealthBar.prototype.SlotStatChanged;
-		HealthBar.prototype.SlotStatChanged = f;
+		f.base = HealthBar.prototype.SetMax;
+		HealthBar.prototype.SetMax = f;
 
 		f = function() {
 			if (this.drawHP) {
