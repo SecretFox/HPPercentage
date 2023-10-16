@@ -78,7 +78,7 @@ class com.fox.HPP {
 			nametags.SetValue(config.FindEntry("Nametags", false));
 			dropshadows.SetValue(config.FindEntry("DropShadow", true));
 			scaling.SetValue(config.FindEntry("Scaling", false));
-			scalingColor.SetValue(config.FindEntry("ScalingColor", "#842af6"));
+			scalingColor.SetValue(config.FindEntry("ScalingColor", "#2B0575"));
 			Loaded = true;
 		}
 	}
