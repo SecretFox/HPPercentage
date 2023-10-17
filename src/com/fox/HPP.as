@@ -3,15 +3,16 @@
 * @author fox
 */
 import caurina.transitions.Tweener;
+import com.GameInterface.AgentSystem;
 import com.GameInterface.DistributedValue;
 import com.GameInterface.DistributedValueBase;
 import com.GameInterface.Game.BuffData;
-import com.GameInterface.Game.Character;
 import com.GameInterface.Game.CharacterBase;
 import com.Utils.Archive;
 import com.Utils.Draw;
 import com.fox.Coloring;
 import flash.filters.DropShadowFilter;
+//import flash.geom.Rectangle;
 import mx.utils.Delegate;
 
 class com.fox.HPP {
@@ -204,7 +205,7 @@ class com.fox.HPP {
 			}
 			//scaling hp bar
 			//this.m_ThirdShield._x = 0;
-			var scalingoverlay = this.m_ThirdShield.createEmptyMovieClip("m_Overlay", this.m_ThirdShield.getNextHighestDepth());
+			var scalingoverlay:MovieClip = this.m_ThirdShield.createEmptyMovieClip("m_Overlay", this.m_ThirdShield.getNextHighestDepth());
 			scalingoverlay._x = this.m_Bar._x + this.m_Bar._width / this.m_Bar._xscale * 100 - this.m_ThirdShield._x;
 			Draw.DrawRectangle(scalingoverlay, 0, 0, 1, this.m_Bar.m_ArtworkEnemy._height, Coloring.HexToInt(DistributedValueBase.GetDValue("HPP_ScalingColor")), 75);
 			scalingoverlay._width = 0;
@@ -234,6 +235,8 @@ class com.fox.HPP {
 			}
 			if (dividers || custom) {
 				Coloring.DrawDivider(this.m_Bar.m_Overlay.m_Divider, dividers, custom);
+				// this would allow using segments on nametags/group window
+				//MovieClip(this.m_Bar.m_Overlay.m_Divider).scale9Grid = new Rectangle(this.m_Bar.m_Overlay.m_Divider._x, this.m_Bar.m_Overlay.m_Divider._y, this.m_Bar.m_Overlay.m_Divider._width, this.m_Bar.m_Overlay.m_Divider._height);
 			}
 			Coloring.DrawBox(this.m_Bar.m_Overlay.m_Border, this.m_Bar.m_ArtworkFriend);
 		}
@@ -291,39 +294,88 @@ class com.fox.HPP {
 		HealthBar.prototype.UpdateBaseHealth = f;
 
 		f = function ():Void {
-			var buffs:Object = Character(this.m_Dynel).m_BuffList;
-			var modifier = 0;
-			for (var i in buffs) {
-				var buff:BuffData = buffs[i];
+			for (var i in this.m_Dynel.m_BuffList) {
+				var buff:BuffData = this.m_Dynel.m_BuffList[i];
 				switch (buff.m_BuffId) {
 					case 9256664: // pulverize
 					case 9464966: // raging
 					case 9469096: // blazing
 					case 9464975: // all eyes on me
 					case 9269422: // Veil of deformity
+					case 7512032: // equal footing
 						return;
-					case 9271325:
-						modifier += 1500;
-						break;
-					default:
-						//com.GameInterface.UtilsBase.PrintChatText(buff.m_Name + "  " + buff.m_BuffId);
 				}
 			}
-			var healthRatio = this.m_Dynel.GetStat(2000765) / 100;
-			this.baseHealth = this.m_Max - Math.ceil(0.5 + healthRatio * this.m_Dynel.GetStat(2000763, 2) * 2.8562);
-			this.baseHealth -= modifier;
+			var modifier = this.GetHealthModifiers();
+			var tankTriangle = this.m_Dynel.GetStat(2000765) / 100;
+			this.baseHealth = this.m_Max - Math.ceil(0.5 + tankTriangle * this.m_Dynel.GetStat(2000763, 2) * 2.8562) - modifier;
 			clearInterval(this.baseHealthInterval);
-			this.UpdateBarScale();
 		}
 		HealthBar.prototype.GetBaseHealth = f;
 
+		f = function() {
+			var modifier = 0;
+			if (this.m_Dynel.m_BuffList[9271325]) modifier += 1500; // Pure anima
+			if (this.m_Dynel.m_BuffList[9271317]) modifier += 1000; // distilled anima
+			if (this.m_Dynel.m_BuffList[9271316]) modifier += 1000; // distilled anima
+
+			var agentPassives = [
+				AgentSystem.GetPassiveInSlot(0),
+				AgentSystem.GetPassiveInSlot(1),
+				AgentSystem.GetPassiveInSlot(2)
+			];
+			for (var i in agentPassives) {
+				switch (agentPassives[i]) {
+					case 9394871:
+					case 9394876:
+					case 9394880:
+					case 9463143:
+					case 9394879:
+					case 9454471:
+					case 9394872:
+					case 9394881:
+					case 9394885:
+					case 9394884:
+					case 9393956:
+					case 9393957:
+					case 9393958:
+					case 9393955:
+					case 9393959:
+					case 9453206:
+						modifier += 490;
+						break;
+					case 9395011:
+					case 9395016:
+					case 9393954:
+					case 9394886:
+					case 9395012:
+					case 9395002:
+					case 9394887:
+					case 9394967:
+					case 9395003:
+					case 9394968:
+					case 9394969:
+						modifier += 980;
+						break;
+				}
+			}
+			return modifier;
+		}
+		HealthBar.prototype.GetHealthModifiers = f;
+
 		f = function ():Void {
-			if (!this.drawHP) return;
 			var scope = this;
 			Tweener.removeTweens(scope.m_Bar);
+			Tweener.removeTweens(scope.m_ThirdShield.m_Overlay);
+			if (this.m_Dynel.m_BuffList[7512032]) {
+				// Equal footing, abort
+				scope.m_Bar._xscale = 100;
+				scope.m_ThirdShield.m_Overlay._width = 0;
+				return;
+			}
 			var healthRatio = this.m_Dynel.GetStat(2000765) / 100;
 			var baseHealth = this.baseHealth;
-			if (Character(this.m_Dynel).m_BuffList[9271325]) baseHealth += 1500;
+			baseHealth += this.GetHealthModifiers();
 			var unbuffedHP = baseHealth + Math.ceil(0.5 + healthRatio * this.m_Dynel.GetStat(2000763, 2) * 2.8562);
 			var targetScale = (this.m_Max / unbuffedHP * 100 + 100) / 2;
 			var centerText = function() {
@@ -331,19 +383,20 @@ class com.fox.HPP {
 			}
 			var orgWidth = scope.m_Bar._width / scope.m_Bar._xscale * 100;
 			var targetWidth = orgWidth * targetScale / 100;
+
 			Tweener.addTween(scope.m_Bar, {_xscale:targetScale, time:2, onUpdate:centerText});
 			Tweener.addTween(scope.m_ThirdShield.m_Overlay, {_width:targetWidth-orgWidth, time:2});
-			
+
 		}
 		HealthBar.prototype.UpdateBarScale = f;
 
-		f = function (stat):Void {
+		f = function() {
 			arguments.callee.base.apply(this, arguments);
-			if (!this.drawHP) return;
-			if (!this.isPlayer) return;
-			if ( !this.baseHealth) return;
-			if ( !DistributedValueBase.GetDValue("HPP_Scaling")) return;
-			this.UpdateBarScale();
+			if (!this.drawHP ||
+				!this.isPlayer ||
+				!this.baseHealth ||
+				!DistributedValueBase.GetDValue("HPP_Scaling")) return;
+			setTimeout(Delegate.create(this, this.UpdateBarScale), 50); // small delay for buffs to properly update
 		}
 		f.base = HealthBar.prototype.SetMax;
 		HealthBar.prototype.SetMax = f;

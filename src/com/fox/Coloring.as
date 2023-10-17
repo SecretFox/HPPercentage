@@ -59,8 +59,8 @@ class com.fox.Coloring {
 	
 	static function DrawDivider(clip:MovieClip, amount, custom){
 		var y = clip._parent.y;
-		var width =  clip._parent.width;
-		var height =  clip._parent.height;
+		var width = clip._parent.width;
+		var height = clip._parent.height;
 		
 		for (var i = 1; i < amount; i++) {
 			var x = width / amount * i;
